@@ -1,0 +1,332 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Task generation problem</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+	$(document).ready(function () {
+	  $('#DifficultySubmit').click(function (e) {
+		e.preventDefault();
+		if (EChecker(0) == false) {
+			return;
+		}
+		$("#DifficultySubmit").prop("disabled", true).css('opacity',0.5);
+		$("#ToggleDifficultyButton").prop("disabled", true).css('opacity',0.5);
+		$("#NumberOfTasks").prop("readonly", true).css('opacity',0.5);
+		$("#NumberOfTasksButton").prop("disabled", true).css('opacity',0.5);
+		$("#PopSize").prop("readonly", true).css('opacity',0.5);
+		$("#TSize").prop("readonly", true).css('opacity',0.5);
+		$("#CssExample").prop( "disabled", true );
+		$(".DCell").prop("readonly", true).css('opacity',0.5);
+		$(".ECell").prop("readonly", true).css('opacity',0.5);
+		$("#loaderwrapper").show();
+		var DifficultyValues = $("[name^=d\\[").map(function(){return $(this).val();}).get();
+		var TSize = $('input[name ="TSize"]').val();
+		var PopSize = $('input[name ="PopSize"]').val();
+		$.ajax
+		  ({
+			type: "POST",
+			url: "difficulty.php",
+			data: { DifficultyValues: DifficultyValues, TSize: TSize, PopSize: PopSize },
+			success: function (data) {
+				$('#Difficulty').empty();
+				var opts = $.parseJSON(data);
+				var MinDiff = Math.min.apply(Math, opts);
+				var MaxDiff = Math.max.apply(Math, opts);
+                $.each(opts, function(index, value) {
+
+					if (value==MinDiff) {
+						var CategoryName= "easy";
+					}
+					else if (value==MaxDiff) {
+						var CategoryName= "difficult";
+					}
+					else if (value!=MinDiff && value!=MaxDiff) {
+						var CategoryName= "medium";
+					}
+
+                    $('#Difficulty').append('<option value="' + value + '">' + value +' - '+ CategoryName +'</option>');
+				});
+				if (opts.length==0) {
+					alert('No available Difficulty options for set values.');
+					$("#loaderwrapper").hide();
+					$("#locked").show();
+				}
+				else {
+					var select = document.getElementById("Difficulty");
+					var items = select.getElementsByTagName('option');
+					var index = Math.floor(Math.random() * items.length);
+					select.selectedIndex = index;
+					$("#loaderwrapper").hide();
+					$("#locked").show();
+				}
+            }
+		  });
+		});
+	});	
+  </script>
+<style>
+	table, td {
+	  border: 1px solid black;
+	}
+	table {
+	  border-collapse: collapse;
+	}
+	input[type="number"] {
+		width: 30px;
+		height: 30px;
+	}
+	form {
+		display: flex;
+	}
+	.wrapper {
+		flex: 0 0 100%;
+	}
+	.box-center {
+		padding-left: 15px;
+	}
+	.loader {
+	border: 3px solid #f3f3f3;
+	border-radius: 50%;
+	border-top: 3px solid #3498db;
+	width: 15px;
+	height: 15px;
+	-webkit-animation: spin 2s linear infinite; /* Safari */
+	animation: spin 2s linear infinite;
+	}
+	@-webkit-keyframes spin {
+	0% { -webkit-transform: rotate(0deg); }
+	100% { -webkit-transform: rotate(360deg); }
+	}
+
+	@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+	}
+	#loaderwrapper div, #loaderwrapper p {
+		display: inline-block;
+	}
+	#loaderwrapper {
+		display: none;
+	}
+	#locked {
+		display: none;
+	}
+	</style>
+
+<script>
+	var Difficulty_disabled = false;
+	function DefineTasks() {
+		if (document.getElementById("NumberOfTasks").value<=50) {
+			var target = document.getElementById("NumberOfTasks").value;
+			var actual = document.getElementById("E").rows.length;
+
+			if (target>actual) {
+				for (var x=actual; x<target; x++) {
+					CreateTask();
+				}
+			}
+			else if (actual>target) {
+				for (var x=actual; x>target; x--) {
+					DeleteTask();
+				}
+			}
+		}
+		document.getElementById("TSize").min = Math.round(document.getElementById("NumberOfTasks").value/4);
+		document.getElementById("TSize").max = Math.round(document.getElementById("NumberOfTasks").value/2);
+		document.getElementById("TSize").value = Math.round(document.getElementById("NumberOfTasks").value/4);
+	}
+
+	function CreateTask() {
+		var table = document.getElementById("E");
+		var Tasks = document.getElementById("Tasks");
+		var row = table.rows;
+		table.insertRow(0);
+		TaskRow = Tasks.insertRow(0);
+		TaskCell = TaskRow.insertCell(0);
+		DifficultyCell = TaskRow.insertCell(1);
+		TaskCell.innerHTML = "<input type='text' required>";
+		DifficultyCell.innerHTML = "<input type='number' value='1' min='1' max='5'>";
+		var i = 0;  
+		for (var j = 0; j < row.length; j++) {  
+			var cell = row[j].insertCell(i);
+			cell.innerHTML = "<input type='number' value='10' min='0' max='10' class='ECell'>";
+		}
+		CellNaming();
+	}
+	
+	function DeleteTask() {
+		var table = document.getElementById("E");  
+		var Tasks = document.getElementById("Tasks");
+		var row = table.rows;
+		table.deleteRow(0);
+		Tasks.deleteRow(0);
+		var i = 0;  
+		for (var j = 0; j < row.length; j++) {  
+			row[j].deleteCell(i); 
+		}
+		CellNaming();
+	}
+
+	function CellNaming() {
+	var table = document.getElementById("E");
+	var Tasks = document.getElementById("Tasks");
+		for (var i = 0, row; row = table.rows[i]; i++) {
+			Tasks.rows[i].children[0].children[0].setAttribute("name","a["+i.toString()+"]");
+			Tasks.rows[i].children[0].children[0].setAttribute("class","ACell");
+			Tasks.rows[i].children[1].children[0].setAttribute("name","d["+i.toString()+"]");
+			Tasks.rows[i].children[1].children[0].setAttribute("class","DCell");
+
+			if (Difficulty_disabled==true) {
+				Tasks.rows[i].children[1].children[0].disabled = true;
+				document.getElementById("Difficulty").disabled = true;
+				document.getElementById("DifficultyBox").style.visibility = "hidden"; 
+			}
+			else {
+				Tasks.rows[i].children[1].children[0].disabled = false;
+				document.getElementById("Difficulty").disabled = false;
+				document.getElementById("DifficultyBox").style.visibility = "visible"; 
+			}
+
+			for (var j = 0, col; col = row.cells[j]; j++) {
+				col.children[0].setAttribute("name","e["+i.toString()+"/"+j.toString()+"]");
+				if (i==j) {
+					col.children[0].setAttribute("readonly","true");
+					col.children[0].setAttribute("style","background-color:#dedede;");
+				}
+			}  
+		}
+	}
+
+	function ToggleDifficulty() {
+	var table = document.getElementById("E");
+	var Tasks = document.getElementById("Tasks");
+		if (table.rows.length>0) {
+			for (var i = 0, row; row = table.rows[i]; i++) {
+
+				if (Tasks.rows[i].children[1].children[0].disabled) {
+					Tasks.rows[i].children[1].children[0].disabled = false;
+					document.getElementById("Difficulty").disabled = false;
+					document.getElementById("DifficultyBox").style.visibility = "visible"; 
+				}
+				else {
+					Tasks.rows[i].children[1].children[0].disabled = true;
+					document.getElementById("Difficulty").disabled = true;
+					document.getElementById("DifficultyBox").style.visibility = "hidden";
+				}
+			}
+			if (Difficulty_disabled==false) {
+				Difficulty_disabled=true;
+			}
+			else {
+				Difficulty_disabled=false;
+			}
+		}	
+	}
+
+	function UniqueValues(value, index, self) {
+		return self.indexOf(value) === index;
+	}
+
+	function EChecker(x) {
+		
+		var ECells = document.getElementsByClassName("ECell");
+		var rows = document.getElementById('E').rows
+		var len = rows.length;
+		var CellNum = 0;
+		var ColCount = 0;
+		var SumCount = 0;
+		var NumberOfTasks = document.getElementById("NumberOfTasks").value;
+		var TSize = document.getElementById("TSize").value;
+		var MaximumTotalNumberOfZeros = Math.floor((((NumberOfTasks-1+TSize*2)/2)*(NumberOfTasks-TSize*2))/10)*2;
+		var MaximumNumberOfZerosInRows = Math.floor((NumberOfTasks-TSize)/4)*2;
+
+		for (j=1; j<len+1; j++) {
+			CellNum+=j;
+		}
+
+		const val = 0;
+		var EClean = Array(len);
+		for (var i = 0; i < len; i++) {
+			EClean[i] = Array(len).fill(val);
+		}
+
+		for (k=0; k<CellNum; k++) {
+			CellIndex = ECells[k].name.substring(2, ECells[k].name.length - 1).split("/");
+			value = ECells[k].value;
+			EClean[CellIndex[0]][CellIndex[1]] = value;
+			EClean[CellIndex[1]][CellIndex[0]] = value;
+		}
+
+		for (i = 0; i < len; i++) {
+			for (j = 0; j < len; j++) {
+				if (EClean[i][j] == '0') {
+					ColCount++;
+					SumCount++;
+				}
+			}
+			if (ColCount>MaximumNumberOfZerosInRows) {
+				alert("Too many zeros in one or more rows or columns. Total number of allowed zeros per row or column in the whole matrix:" + MaximumNumberOfZerosInRows);
+			}
+			ColCount=0;
+		}
+		if (SumCount>MaximumTotalNumberOfZeros) {
+				alert("Too many zeros in matrix! Total number of allowed zeros: " + MaximumTotalNumberOfZeros);
+
+		}
+		if (document.getElementById("DifficultyBox").style.visibility == "visible") {
+			var DifficultyValuesArray = $('.DCell').map(function(){
+			return $(this).val()
+			}).get();
+			var UniqueDifficultyValues = DifficultyValuesArray.filter(UniqueValues);
+			if (UniqueDifficultyValues.length < 3) {
+				alert("Please choose at least 3 different difficulty values or toggle off the difficulty parameter.");
+				return false;
+			}
+		}
+		if (x == 0) {
+			return true;
+		}
+		else if (x == 1) {
+			if (document.getElementById("DifficultyBox").style.visibility == "visible" && document.getElementById("Difficulty").value == "") {
+				alert("Please choose a target difficulty or toggle off the difficulty parameter.");
+				return false;
+			}
+			return true;
+		}
+	}
+</script>
+</head>
+<body>
+<form action="program.php" method="post" onsubmit="return EChecker(1)">
+<div class="flex-box-side">
+<div class="wrapper">
+<table id="E"></table>
+</div>
+<div class="wrapper">
+<table id="Tasks"></table>
+</div>
+</div>
+<div class="box-center">
+<h1>Task generation problem</h1>
+<p>PopSize: <input type="number" min="10" max="100" name="PopSize" id="PopSize" value="30"></p>
+<p>TSize: <input type="number" name="TSize" id="TSize"></p>
+<input type="number" id="NumberOfTasks" name="NumberOfTasks" value="20" min="20" max="50">
+<button type="button"  id="NumberOfTasksButton" onclick="DefineTasks()">Define number of tasks</button>
+<p><button type="button" id="ToggleDifficultyButton" onclick="ToggleDifficulty()">Toggle Difficulty</button></p>
+<div id="DifficultyBox"><p><input type="button" id="DifficultySubmit" value="Calculate available Difficulty values!"></p>
+<p><label>Difficulty: </label><select id="Difficulty" name="Difficulty"></select></p>
+<div id="loaderwrapper"><p>Calculating difficulty values. Please wait... </p><div class="loader"></div></div>
+<p id="locked">Difficulties calculated. <br>
+	Choose a difficulty value and click the submit button. <br>
+	If you'd like a fresh new start, please refresh the page. <br></p>
+</div>
+<label>Load example content for CSS task generation: </label><input type="radio" id="CssExample" name="CssExample" value="enabled" onclick="CSSExample()">
+<p><input type="submit" value="Submit" id="submit"></p>
+</div>
+</form>
+<script src="default.js"></script>
+<script src="css_example.js"></script>
+</body>
+</html>
